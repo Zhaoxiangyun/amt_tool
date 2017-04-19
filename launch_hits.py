@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
   frame_height = hit_properties.pop('frame_height')
   env = simpleamt.get_jinja_env(args.config)
-  template = env.get_template(args.html_template)
+  template = env.get_template(os.path.join('hit_templates', args.html_template))
 
   if args.hit_ids_file is None:
     print 'Need to input a hit_ids_file'

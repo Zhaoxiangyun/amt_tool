@@ -89,7 +89,7 @@ def setup_qualifications(hit_properties, mtc):
     del hit_properties['qualification_integer']
   if 'country' in hit_properties:
     qual.add(LocaleRequirement('In',
-      hit_properties['country']))
+      [hit_properties['country']]))
     del hit_properties['country']
 
   if 'hits_approved' in hit_properties:
