@@ -22,7 +22,13 @@
         font-weight: bold;
       }
       img {
-        height: 600px;
+        height: 300px;
+        width: 300px;
+	border: solid 1px; 
+	margin: 10px;
+      }
+      .selected {
+          box-shadow: 0px 12px 22px 1px #333;
       }
     </style>
   </head>
@@ -34,11 +40,18 @@
     <div class='container-fluid'>
       <div class='row'>
         <div class='col-xs-12 text-center'>
-          <div id='source-image-container'></div>
-          <div id='target1-image-container'></div>
-          <input type='radio' name='selected_img_id' value='1'>
-          <div id='target2-image-container'></div>
-          <input type='radio' name='selected_img_id' value='2'>
+		<table style="width:100%">
+			<tr>
+				<td><div id='source-image-container'></div></td>
+			</tr>
+		</table>
+		<h2>Select the most similar image</h2>
+		<table style="width:100%">
+			<tr>
+				<td><div id='target1-image-container'></div></td>
+				<td><div id='target2-image-container'></div></td>
+			</tr>
+		</table>
         </div>
       </div>
       <div class='row'>
@@ -116,6 +129,18 @@
           $('#target2-image-container').empty();
           $('<img>').attr('src', input[idx].target2).appendTo($('#target2-image-container'));
 
+	  // Reset selected states
+	  $('#target1-image-container').removeClass('selected');
+	  $('#target2-image-container').removeClass('selected');
+	  
+	  if (select_results[idx] == 1) {
+	  	$('#target1-image-container').addClass('selected');
+	  }
+
+	  if (select_results[idx] == 2) {
+	  	$('#target2-image-container').addClass('selected');
+	  }
+
           // If the UI is enabled, enable or disable the buttons depending on
           // the index.
           if (enabled) {
@@ -133,7 +158,6 @@
         // Update the index, and save the text in the text area.
         function set_idx(new_idx) {
           if (new_idx < 0 || new_idx >= input.length) return;
-          select_results[idx] = $('input:radio[name=selected_img_id]:checked').val()
 
           idx = new_idx;
           render();
@@ -144,16 +168,30 @@
           enabled = true;
 
           // Enable components
-          $('#next-btn').click(function() { set_idx(idx + 1) });
-          $('#prev-btn').click(function() { set_idx(idx - 1) });
-          $('#text-area').prop('disabled', false);
+	  $('#target1-image-container').click(function(){
+	      $('.selected').removeClass('selected');
+	      $(this).addClass('selected');
+	      select_results[idx] = 1;
+	  });
+
+	  $('#target2-image-container').click(function(){
+	      $('.selected').removeClass('selected');
+	      $(this).addClass('selected');
+	      select_results[idx] = 2;
+	  });
+
+          $('#next-btn').click(function() { 
+		set_idx(idx + 1) 
+	  });
+          $('#prev-btn').click(function() { 
+		set_idx(idx - 1) 
+	  });
           $('#submit-btn').prop('disabled', false);
 
           // Set up submit handler.
           simpleamt.setupSubmit();
           $('#submit-btn').click(function() {
-            select_results[idx] = $('input:radio[name=selected_img_id]:checked').val()
-            if (_.any(select_results, function(d) { return d.length != 1; })) {
+            if (_.any(select_results, function(d) { return d <= 0; })) {
               alert('You missed some images to select. Correct before submitting.');
               return false;
             }
