@@ -1,0 +1,10 @@
+{
+  "title": "Select the best image",
+  "description": "Selec the best image",
+  "keywords": "image,images,write,writing,sentence",
+  "reward": 0.05,
+  "duration": 900,
+  "frame_height": 20000,
+  "max_assignments": 1,
+  "country": "US"
+}
