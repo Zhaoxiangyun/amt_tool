@@ -173,7 +173,7 @@ To see a minimal example of these functions in action, look at the file `hit_tem
 While developing a HIT template, you will need to render the template to produce a valid HTML page that you can view in a browser. You can do this using the `render_template.py` script. Use it like this:
 
 ```
-python render_template.py --html_template=rendered_templates/simple.html
+python render_template.py --html_template hit_templates/image_sentence.html --rendered_html rendered_html/image_sentence.html
 ```
 
 The rendered template will be stored in a directory called `rendered_templates` (you can change this by passing in the complete destination path of where you want the html rendered file to be saved.). Whenever you change your HIT template you will need to rerender to see your changes.
