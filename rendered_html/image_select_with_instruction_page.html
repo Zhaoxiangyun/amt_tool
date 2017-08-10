@@ -1,0 +1,289 @@
+<html>
+  <head>
+    <title>Select the best fit for the left image</title>
+    <!-- simpleamt depends on these libraries -->
+    <script src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js'></script>
+    <script src='//cdnjs.cloudflare.com/ajax/libs/json3/3.3.2/json3.min.js'></script>    
+    <!-- end of required libraries -->
+    <script src='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js'></script>
+    <script src='//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js'></script>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      #text-area {
+        margin: 10px 0;
+        font-size: 24pt;
+      }
+      #button-div {
+        margin-bottom: 10px;
+      }
+      #counter {
+        margin: 0 10px;
+        font-size: 20pt;
+        font-weight: bold;
+      }
+      img {
+        width: 300px;
+        height: auto;
+	    border: solid 1px; 
+	    margin: 10px;
+      }
+      .selected {
+          box-shadow: 0px 12px 22px 1px #333;
+      }
+    </style>
+  </head>
+  <body>
+      <div id='instruction_page' style='text-align: center;'>
+          <h2>This is the instruction Page.</h2>
+          <div class='row'>
+              <button id='start-btn' class='btn btn-lg btn-primary' disabled>Start</button>
+            </div>
+          </div>
+      </div>
+
+      <div id='label_data_page'>
+        <div class='container'>
+          <h2>Select the best fit image</h2>
+        </div>
+
+        <div class='container-fluid'>
+          <div class='row'>
+            <div class='col-xs-12 text-center'>
+                <table style="width:100%; text-align: center;">
+                    <tr>
+                        <td><div id='source-image-container'></div></td>
+                    </tr>
+                </table>
+                <h2>Select the most similar image</h2>
+                <table style="width:100%; text-align: center;">
+                    <tr>
+                        <td><div id='target1-image-container'></div></td>
+                        <td><div id='target2-image-container'></div></td>
+                    </tr>
+                </table>
+            </div>
+          </div>
+          <div class='row'>
+            <div class='col-xs-4 col-xs-offset-4 text-center' id='button-div'>
+              <button id='prev-btn' class='btn btn-lg btn-primary' disabled>Back</button>
+              <span id='counter'>
+                <span class='counter-top'></span> / <span class='counter-bottom'></span>
+              </span>
+              <button id='next-btn' class='btn btn-lg btn-primary' disabled>Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <script type='text/json' id='input'>
+  [{"source": "http://www.wired.com/images_blogs/photos/uncategorized/2008/03/04/puppy.jpg", "target2": "http://cdn.cutestpaw.com/wp-content/uploads/2011/11/Puppy-Power-l.jpg", "target1": "http://www.wired.com/images_blogs/photos/uncategorized/2008/03/04/puppy.jpg"}, {"source": "http://cdn.cutestpaw.com/wp-content/uploads/2011/11/Puppy-Power-l.jpg", "target2": "http://www.wired.com/images_blogs/photos/uncategorized/2008/03/04/puppy.jpg", "target1": "http://cdn.cutestpaw.com/wp-content/uploads/2011/11/Puppy-Power-l.jpg"}]
+</script>
+<form id='results-form' method='post' action='dummy' class='text-center'>
+  <input type='hidden' value='' name='assignmentId' id='assignmentId'/>
+  <input type='hidden' value='' name='output' id='output'/>
+  <input type='submit' class='btn btn-lg btn-success' id='submit-btn' value='Submit' disabled/>          
+</form>
+<script>
+  var simpleamt = (function() {
+    
+    // Copied from http://james.padolsey.com/javascript/bujs-1-getparameterbyname/
+    function getUrlParam(name) {
+      var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+      return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : null;
+    }
+
+    function getInput(default_input) {
+      if (typeof(default_input) === 'undefined') default_input = null;
+      try {
+        return JSON.parse($('#input').html());
+      } catch (e) {
+        return default_input;
+      }
+    }
+
+    function setOutput(output) {
+      $('#output').val(JSON.stringify(output));
+    }
+
+    function isPreview() {
+      var assignment_id = getUrlParam('assignmentId');
+      if (assignment_id === null) return false;
+      return assignment_id == 'ASSIGNMENT_ID_NOT_AVAILABLE';
+    }
+
+    function setupSubmit() {
+      var submit_to = getUrlParam('turkSubmitTo');
+      $('#results-form').attr('action', submit_to + '/mturk/externalSubmit');                      
+      $('#assignmentId').val(getUrlParam('assignmentId'));
+    }
+
+    return {
+      getInput: getInput,
+      setOutput: setOutput,
+      isPreview: isPreview,
+      setupSubmit: setupSubmit,
+    }
+
+  })();
+</script>
+
+    <script>
+      $(function() {
+
+        // Define some default input.
+        var DEFAULT_INPUT = [
+          'http://samsuria.com/wp-content/uploads/2014/10/cute-cat-wallpapers.jpg',
+          'http://stuffpoint.com/cats/image/41633-cats-cute-cat.jpg',
+        ];
+
+        var input = null;
+
+        // Descriptions of images, parallel to input.
+        var select_results = [];
+
+        // Some variables to track state of the HIT.
+        var idx = 0;
+        var enabled = false;
+
+        function main() {
+          // If this is a HIT on AMT, then replace the default input with the real input.
+          input = simpleamt.getInput(DEFAULT_INPUT);
+
+          // Enable the UI if the HIT is not in preview mode.
+          if (!simpleamt.isPreview()) {
+            enable_hit();
+          }
+
+          render_instruction_page();
+
+          // Set up the select_results
+          _.each(input, function() { select_results.push(-1); });
+
+          // Preload all images
+          var imgs = [];
+          _.each(input, function(data) {
+            source_img = data.source
+            target1_img = data.target1
+            target2_img = data.target2
+            var img = new Image();
+            img.onload = function() { console.log('loaded image from ' + source_img); };
+            img.src = source_img;
+            var img1 = new Image();
+            img.onload = function() { console.log('loaded image from ' + target1_img); };
+            img.src = target1_img;
+            var img2 = new Image();
+            img.onload = function() { console.log('loaded image from ' + target2_img); };
+            img.src = target2_img;
+          });
+        }
+
+        function render_instruction_page() {
+            if (enabled) {
+                var start_btn = $('#start_btn');
+                start_btn.prop('disabled', false);
+            }
+
+            $('#instruction_page').show();
+            $('#label_data_page').hide();
+            $('#submit-btn').hide();
+        }
+
+        // Use the current index to update the image and description
+        function render() {
+          $('#instruction_page').hide();
+          $('#label_data_page').show();
+          $('#submit-btn').show();
+
+          // Set up the image
+          $('#source-image-container').empty();
+          $('<img>').attr('src', input[idx].source).appendTo($('#source-image-container'));
+
+          $('#target1-image-container').empty();
+          $('<img>').attr('src', input[idx].target1).appendTo($('#target1-image-container'));
+
+          $('#target2-image-container').empty();
+          $('<img>').attr('src', input[idx].target2).appendTo($('#target2-image-container'));
+
+          // Reset selected states
+          $('#target1-image-container').removeClass('selected');
+          $('#target2-image-container').removeClass('selected');
+          
+          if (select_results[idx] == 1) {
+            $('#target1-image-container').addClass('selected');
+          }
+
+          if (select_results[idx] == 2) {
+            $('#target2-image-container').addClass('selected');
+          }
+
+          // If the UI is enabled, enable or disable the buttons depending on
+          // the index.
+          if (enabled) {
+            var prev_btn = $('#prev-btn');
+            var next_btn = $('#next-btn');
+            prev_btn.prop('disabled', true);
+            next_btn.prop('disabled', true);
+            if (idx > 0) {
+              prev_btn.prop('disabled', false);
+            }
+            if (idx < input.length - 1) next_btn.prop('disabled', false);
+          }
+        }
+
+        // Update the index, and save the text in the text area.
+        function set_idx(new_idx) {
+          if (new_idx < 0 || new_idx >= input.length) return;
+
+          idx = new_idx;
+          render();
+        }
+
+        // Enable the UI.
+        function enable_hit() {
+          enabled = true;
+
+          // Enable components
+          $('#target1-image-container').click(function(){
+              $('.selected').removeClass('selected');
+              $(this).addClass('selected');
+              select_results[idx] = 1;
+          });
+
+          $('#target2-image-container').click(function(){
+              $('.selected').removeClass('selected');
+              $(this).addClass('selected');
+              select_results[idx] = 2;
+          });
+
+          $('#next-btn').click(function() { 
+            set_idx(idx + 1) 
+          });
+          $('#prev-btn').click(function() { 
+            set_idx(idx - 1) 
+          });
+          $('#submit-btn').prop('disabled', false);
+
+          $('#start-btn').prop('disabled', false);
+          $('#start-btn').click(function() {
+             render();     
+          });
+
+          // Set up submit handler.
+          simpleamt.setupSubmit();
+          $('#submit-btn').click(function() {
+            if (_.any(select_results, function(d) { return d <= 0; })) {
+              alert('You missed some images to select. Correct before submitting.');
+              return false;
+            }
+            var output = _.map(_.zip(input, select_results), function(x) {
+              return {'image_url': x[0], 'select_result': x[1]};
+            });
+            simpleamt.setOutput(output);
+          });
+        }
+
+        main();
+      });
+    </script>
+  </body>
+</html>
