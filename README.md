@@ -92,6 +92,13 @@ Or if you want to approve individual assignments, you can save all the assignmen
 python approve_assignments.py --assignment_ids_file=examples/image_sentence/assignment_ids.txt
 ```
 
+### Sentinel Checking
+I think the best way to do sentinel checking is to do if off-line when you get the results from the workers. You can disapprove the HITs labeled by bad workers and re-submit another group of HITs that needs to be re-labeled again on MTurk.
+
+However, you can always write some Javascript code to do online sentinel checking. You can disallow the workers to submit their HITs at all if they have got too many sentinel examples wrongly labeled. But you still need to do off-line double check to make sure your collected data is valid.
+
+Check `hit_templates/image_select_with_sentinel_checking.html` for the HTML template for online sentinel checking.
+
 ### Delete HITs
 Once your HITs are completed and you have saved the results, you can delete the HITs from Amazon's database with the following command:
 ```
